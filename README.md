@@ -201,6 +201,15 @@ AltMorph includes caching to improve performance:
 - **Timeout handling**: Robust error recovery with retries
 - **Rate limiting**: Respectful API usage patterns
 
+## 🛠️ Tools
+
+AltMorph includes additional tools for batch processing and testing:
+
+- **[`tools/process_jsonl.py`](tools/)**: Batch process JSONL files by adding morphological alternatives to text fields
+- **[`tools/pos_tester.py`](tools/)**: Compare POS tagging across multiple Norwegian NLP models
+
+See [`tools/README.md`](tools/README.md) for detailed documentation and usage examples.
+
 ## 🔧 Development
 
 ### Project Structure
@@ -208,8 +217,12 @@ AltMorph includes caching to improve performance:
 altmorph/
 ├── altmorph.py              # Main application
 ├── tools/
+│   ├── README.md            # Tools documentation  
+│   ├── process_jsonl.py     # JSONL batch processor
 │   └── pos_tester.py        # POS tagging comparison tool
-├── README.md                # Documentation
+├── data/
+│   └── sample_input.jsonl   # Sample data for testing
+├── README.md                # Main documentation
 ├── setup.py                 # Legacy packaging
 ├── pyproject.toml          # Modern packaging
 ├── requirements.txt         # Dependencies
@@ -237,6 +250,9 @@ python altmorph.py --sentence "Katta ligger på matta." --lang nob --no-cache
 
 # Test POS comparison tool
 python tools/pos_tester.py --text "Katta ligger på matta."
+
+# Test batch processing with sample data
+python tools/process_jsonl.py --input_file data/sample_input.jsonl --output_file test_output.jsonl --verbosity 2
 ```
 
 ## 🤝 Related Projects

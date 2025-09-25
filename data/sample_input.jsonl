@@ -1,0 +1,4 @@
+{"id": 1, "text": "Katta ligger på matten.", "source": "example"}
+{"id": 2, "text": "Gutten løper fort.", "category": "sports", "source": "test"}
+{"id": 3, "text": "Jenta leser boka si.", "metadata": {"author": "test"}}
+{"id": 4, "text": "Hunden springer i parken.", "tags": ["animals", "outdoors"]}
