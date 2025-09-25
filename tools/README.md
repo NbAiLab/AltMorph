@@ -175,3 +175,11 @@ Both tools are designed to work alongside the main AltMorph application:
 - **`pos_tester.py`** helps validate and debug the POS tagging that AltMorph relies on
 
 See the main project README.md for more details about AltMorph itself.
+
+## 🔧 Additional Utilities
+
+### `hf_probe_fields.py` - HuggingFace Dataset Inspector
+Quick utility to probe HuggingFace dataset fields and stream sample rows.
+
+### `stream_ncc_text.py` - NCC Speech Text Streamer  
+Streams text from NbAiLab/ncc_speech_v7 dataset without downloading audio files.
