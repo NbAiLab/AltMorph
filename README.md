@@ -166,6 +166,9 @@ AltMorph includes an intelligent caching system that dramatically improves perfo
 
 ## 🧠 Technical Details
 
+### Code Architecture Deep-Dive
+📖 **[Complete Code Walkthrough](code_explanation.md)** - Detailed technical explanation of how AltMorph works, perfect for developers wanting to understand the implementation.
+
 ### Architecture
 1. **Input Processing**: Tokenization preserving whitespace and punctuation
 2. **POS Tagging**: NbAiLab/nb-bert-base-pos for accurate grammatical analysis
