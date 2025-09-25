@@ -1,6 +1,6 @@
 # AltMorph Code Walkthrough: Senior to Junior Developer
 
-Welcome! Let's walk through the AltMorph codebase together. This is a sophisticated Norwegian morphological analysis tool that finds alternative word forms in context. Think of it as a smart system that can tell you that "kasta" could also be "kastet" in some contexts, but not others.
+Welcome! Let's walk through the AltMorph codebase together. This Norwegian morphological analysis tool finds alternative word forms in context. It can, for instance, show that "kasta" might correspond to "kastet" in some contexts, but not others.
 
 ## The Big Picture: What Does This System Do?
 
@@ -12,11 +12,11 @@ This means:
 - "kasta" could also be "kastet" (past tense variants)
 - "ballen" could also be "balla" (dialectal variant)
 
-But here's the clever part: **context matters**. The same word "kasta" might have different alternatives depending on where it appears in the sentence and what grammatical role it plays.
+The important detail is that **context matters**. The same word "kasta" might have different alternatives depending on where it appears in the sentence and what grammatical role it plays.
 
 ## Architecture Overview: The Processing Pipeline
 
-The system works like a assembly line with these main stages:
+The processing pipeline runs through these main stages:
 
 ```
 Input Sentence → Tokenization → POS Tagging → API Lookup → BERT Filtering → Output
@@ -41,7 +41,7 @@ def preprocess_punctuation(text: str) -> str:
 2. **Process**: Find alternatives for clean words
 3. **Postprocess**: `"Katta ligger på {matten, matta} ."` → `"Katta ligger på {matten, matta}."`
 
-### Smart Tokenization
+### Tokenization
 
 ```python
 def tokenize_preserve(text: str) -> List[str]:
@@ -111,7 +111,7 @@ ballen: NOUN
 
 ## Stage 3: API Lookup Strategy
 
-This is where things get sophisticated. We need to find ALL possible forms of a word.
+This stage gathers every form of a word that might apply.
 
 ### The Multi-Lemma Challenge
 
@@ -123,7 +123,7 @@ Here's a real example: "ballen" (the ball) has THREE different lemmas in the Nor
 
 **The problem**: If we only looked at the first lemma, we'd miss "balla" as an alternative. But if we combine all lemmas blindly, we get irrelevant forms.
 
-### Smart Lemma Selection
+### Lemma Selection
 
 ```python
 def get_alternatives(word: str, lang: str, headers: Dict[str, str], timeout: float,
@@ -149,7 +149,7 @@ def get_alternatives(word: str, lang: str, headers: Dict[str, str], timeout: flo
             matching_lemmas.append({"id": lemma_id, "inflections": inflections})
 ```
 
-**Why this approach?** We only use lemmas that actually contain the word we're analyzing. This prevents "ballen" from getting random feminine forms that don't apply.
+**Why this approach?** We only use lemmas that actually contain the word we're analyzing. This prevents "ballen" from picking up forms from unrelated lemmas.
 
 ### API Caching: Performance Optimization
 
@@ -228,7 +228,7 @@ def find_matching_tags(target_word: str, inflections: List[Dict], debug: bool = 
 
 ## Stage 5: BERT-Based Acceptability Filtering
 
-This is the sophisticated part. Not all grammatically correct alternatives make sense in context.
+Not all grammatically correct alternatives make sense in context, so we score them before presenting the output.
 
 ### The Context Problem
 
@@ -299,7 +299,7 @@ kastene  : Logit 1.497
 ❌ REJECTING kastene: logit diff +6.023 > 2.0 (too improbable)
 ```
 
-### Position Matters!
+### Position Matters
 
 The same word can have different alternatives in different positions:
 
@@ -331,7 +331,7 @@ def case_match(original: str, target: str) -> str:
 
 **Why this matters**: If the input is "Jenta", the output should be "{Jenta, Jenten}", not "{jenta, jenten}".
 
-### Smart Ordering
+### Ordering
 
 ```python
 # Order: original first, then others sorted
@@ -465,20 +465,20 @@ The system has 4 verbosity levels:
 
 ### Why Caching?
 - **Problem**: API calls are slow (300-500ms each)
-- **Solution**: File-based cache with smart key generation
+- **Solution**: File-based cache with explicit key generation
 - **Result**: 10x speed improvement on subsequent runs
 
 ## Summary
 
-AltMorph is a sophisticated system that combines:
+AltMorph combines:
 1. **Norwegian POS tagging** for linguistic accuracy
 2. **Comprehensive API querying** for completeness  
 3. **BERT contextual scoring** for acceptability
-4. **Smart caching and concurrency** for performance
+4. **Caching and concurrency** for performance
 5. **Robust error handling** for reliability
 
 The key insight is that morphological alternatives aren't just about grammar—context matters enormously. A word that's grammatically correct might be contextually inappropriate, and only advanced language models can make these subtle distinctions.
 
-The system prioritizes correctness over speed, but uses caching and concurrency to make it practical for real-world use. Every design decision was made to handle the complexity of natural language while providing reliable, fast results.
+The system prioritizes correctness over speed, but uses caching and concurrency to make it practical for real-world use. Every design decision aims to handle the complexity of natural language while providing reliable results.
 
-When you see the output `"{Jenta, Jenten} {kasta, kastet} ballen til gutten."`, you're seeing the result of a complex pipeline that considered grammar, context, and acceptability to give you only the alternatives that truly make sense.
+When you see the output `"{Jenta, Jenten} {kasta, kastet} ballen til gutten."`, the pipeline has considered grammar, context, and acceptability to keep alternatives that are likely to fit.

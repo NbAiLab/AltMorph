@@ -1,17 +1,17 @@
 # AltMorph: Context-Aware Norwegian Morphological Alternative Generator
 
-**AltMorph** is a sophisticated tool for expanding Norwegian text by finding morphological alternatives for each word. It combines the Ordbank API with advanced NLP techniques to provide contextually appropriate word alternatives.
+**AltMorph** is a tool for expanding Norwegian text by finding morphological alternatives for each word. It combines the Ordbank API with NLP techniques to provide alternatives that fit the surrounding context.
 
 ## ✨ Features
 
-- **🎯 Context-sensitive filtering**: Intelligently handles ambiguous cases using BERT-based acceptability scoring
-- **📚 Comprehensive lemma coverage**: Finds all valid morphological forms from multiple lemmas
-- **🔍 Position-specific analysis**: Analyzes each word occurrence in its specific syntactic context  
-- **⚡ Intelligent caching**: Dramatic performance improvements with persistent file-based caching
+- **🎯 Context-sensitive filtering**: Uses BERT-based acceptability scoring for ambiguous cases
+- **📚 Lemma coverage**: Finds morphological forms across multiple lemmas
+- **🔍 Position-specific analysis**: Looks at each word in its syntactic context  
+- **⚡ Caching**: Persistent file-based caching to improve performance
 - **🗣️ Multiple verbosity levels**: From silent operation to detailed pipeline insights
 - **🌐 Language support**: Norwegian Bokmål (`nob`) and Nynorsk (`nno`)
-- **🧠 POS-aware**: Uses NbAiLab BERT models for accurate part-of-speech tagging
-- **🚀 Parallel processing**: Efficient concurrent API calls
+- **🧠 POS-aware**: Uses NbAiLab BERT models for part-of-speech tagging
+- **🚀 Parallel processing**: Runs concurrent API calls
 
 ## 🛠️ Installation
 
@@ -54,8 +54,8 @@ python altmorph.py \
 
 ## 📖 Usage Examples
 
-### Context-Sensitive Intelligence
-The tool demonstrates sophisticated linguistic understanding:
+### Context-Sensitive Behaviour
+The tool takes sentence context into account:
 
 **Simple example:**
 ```bash
@@ -68,7 +68,7 @@ python altmorph.py --sentence "Katta ligger på matta." --lang nob
 ```bash
 python altmorph.py --sentence "Katta ligger på matta i stua." --lang nob  
 # Output: "{Katta, Katten} ligger på {matta, matten} i stua."
-# BERT contextual filtering ensures appropriate alternatives in context
+# BERT-based filtering keeps alternatives that work in the sentence
 ```
 
 ### Position-Specific Analysis
@@ -151,7 +151,7 @@ python altmorph.py --sentence "Katta ligger på matta." --verbosity 3
 
 ## 🗂️ Caching System
 
-AltMorph includes an intelligent caching system that dramatically improves performance:
+AltMorph includes caching to improve performance:
 
 - **Cache location:** `~/.ordbank_cache/`
 - **Cache types:** Lemma searches and inflection data
@@ -162,12 +162,12 @@ AltMorph includes an intelligent caching system that dramatically improves perfo
 
 **Performance impact:**
 - First run: ~3-4 seconds (API calls)
-- Cached runs: ~0.5 seconds (near-instant)
+- Cached runs: ~0.5 seconds
 
 ## 🧠 Technical Details
 
 ### Code Architecture Deep-Dive
-📖 **[Complete Code Walkthrough](code_explanation.md)** - Detailed technical explanation of how AltMorph works, perfect for developers wanting to understand the implementation.
+📖 **[Complete Code Walkthrough](code_explanation.md)** - Detailed technical explanation of how AltMorph works for developers who need implementation details.
 
 ### Architecture
 1. **Input Processing**: Tokenization preserving whitespace and punctuation
@@ -185,15 +185,15 @@ AltMorph includes an intelligent caching system that dramatically improves perfo
 ### Key Algorithms
 - **Comprehensive lemma matching**: Finds all lemmas containing target word
 - **Position-specific analysis**: Each word occurrence analyzed in context
-- **Logit-based filtering**: Robust acceptability thresholding (default: 3.0)
-- **Intelligent prioritization**: Balances morphological completeness with contextual appropriateness
+- **Logit-based filtering**: Acceptability thresholding (default: 3.0)
+- **Prioritization**: Balances morphological coverage with contextual fit
 
 ## 📊 Performance
 
 ### Typical Performance
 - **Single sentence**: 0.5-4 seconds (depending on cache state)
 - **Cache hit rate**: Typically 95%+ for repeated usage
-- **API efficiency**: Parallel requests with intelligent batching
+- **API efficiency**: Parallel requests with batching
 - **Memory usage**: ~500MB (loaded BERT models)
 
 ### Scaling Considerations
