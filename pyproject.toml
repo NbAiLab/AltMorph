@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=45", "wheel", "setuptools_scm[toml]>=6.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "altmorph"
+version = "0.1.0"
+description = "Context-aware Norwegian morphological alternative generator"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+authors = [
+    {name = "Pere", email = "your.email@example.com"},
+]
+keywords = ["morphology", "norwegian", "nlp", "linguistics", "alternatives", "ordbank", "pos", "bert"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Topic :: Text Processing :: Linguistic",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10", 
+    "Programming Language :: Python :: 3.11",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "requests>=2.25.1",
+    "torch>=1.9.0", 
+    "transformers>=4.20.0",
+]
+
+[project.scripts]
+altmorph = "altmorph:main"
+
+[project.urls]
+Homepage = "https://github.com/yourusername/altmorph"
+"Bug Reports" = "https://github.com/yourusername/altmorph/issues"
+Source = "https://github.com/yourusername/altmorph"
