@@ -238,7 +238,7 @@ python tools/pos_tester.py --text "Katta ligger på matta."
 
 ## 🤝 Related Projects
 
-- **[AltWER](https://github.com/peregilk/altwer**: Depends on AltMorph's output format for Norwegian text evaluation
+- **[AltWER](https://github.com/peregilk/altwer)**: Depends on AltMorph's output format for Norwegian text evaluation
 
 ## 📄 License
 
