@@ -31,10 +31,22 @@ from typing import Dict, Any
 
 # Import altmorph functions from parent directory
 try:
-    sys.path.insert(0, str(Path(__file__).parent.parent))
+    parent_dir = Path(__file__).parent.parent
+    sys.path.insert(0, str(parent_dir))
+    
+    # Debug info
+    altmorph_path = parent_dir / "altmorph.py"
+    if not altmorph_path.exists():
+        print(f"Error: altmorph.py not found at {altmorph_path}")
+        sys.exit(1)
+    
     from altmorph import process_sentence
-except ImportError:
-    print("Error: Cannot import altmorph. Ensure altmorph.py is in the parent directory.")
+except ImportError as e:
+    print(f"Error importing altmorph: {e}")
+    print(f"Python path: {sys.path[:3]}...")  # Show first few paths
+    parent_dir = Path(__file__).parent.parent
+    print(f"Parent directory: {parent_dir}")
+    print(f"Files in parent: {list(parent_dir.glob('*.py'))}")
     sys.exit(1)
 
 
