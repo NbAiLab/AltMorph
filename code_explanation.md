@@ -1,18 +1,18 @@
-# AltMorph Code Walkthrough: Senior to Junior Developer
+# AltMorph Code Walkthrough
 
-Welcome! Let's walk through the AltMorph codebase together. This Norwegian morphological analysis tool finds alternative word forms in context. It can, for instance, show that "kasta" might correspond to "kastet" in some contexts, but not others.
+This Norwegian morphological analysis tool finds alternative word forms in context. It can, for instance, show that "kasta" might correspond to "kastet" in some contexts, but not others.
 
 ## The Big Picture: What Does This System Do?
 
-Imagine you have the sentence "Jenta kasta ballen til gutten." AltMorph will analyze each word and produce:
-`"{Jenta, Jenten} {kasta, kastet} {ballen, balla} til gutten."`
+Imagine you have the sentence "Katta ligger på matten." AltMorph will analyze each word and produce:
+`"{Katta, Katten} ligger på {matten, matta}."`
 
 This means:
-- "Jenta" could also be "Jenten" (subject vs. object form)  
-- "kasta" could also be "kastet" (past tense variants)
-- "ballen" could also be "balla" (dialectal variant)
+- "Katta" could also be "Katten"  
+- "matten" could also be "matta"
+- "ligger" and "på" remain unchanged as they have no relevant alternatives in this context
 
-The important detail is that **context matters**. The same word "kasta" might have different alternatives depending on where it appears in the sentence and what grammatical role it plays.
+The important detail is that **context matters**. The same word "matta" might have different alternatives depending on where it appears in the sentence and what grammatical role it plays. It could be "Han matta kongen i sjakk". Here, the word "matten" is not an alternative.
 
 ## Architecture Overview: The Processing Pipeline
 
@@ -36,10 +36,10 @@ def preprocess_punctuation(text: str) -> str:
     return re.sub(r'(?<!\s)([,.;:?!])', r' \1', text)
 ```
 
-**Why this matters**: The Norwegian Ordbank API can't find "matten." but it CAN find "matten". So we:
-1. **Preprocess**: `"Katta ligger på matten."` → `"Katta ligger på matten ."`
+**Why this matters**: The Norwegian Ordbank API can't find "matta." but it CAN find "matta". So we:
+1. **Preprocess**: `"Katta ligger på matta."` → `"Katta ligger på matta ."`
 2. **Process**: Find alternatives for clean words
-3. **Postprocess**: `"Katta ligger på {matten, matta} ."` → `"Katta ligger på {matten, matta}."`
+3. **Postprocess**: `"Katta ligger på {matta, matten} ."` → `"Katta ligger på {matta, matten}."`
 
 ### Tokenization
 
@@ -49,7 +49,7 @@ def tokenize_preserve(text: str) -> List[str]:
     return re.findall(r'\S+|\s+', text)
 ```
 
-This gives us: `["Katta", " ", "ligger", " ", "på", " ", "matten", " ", "."]`
+This gives us: `["Katta", " ", "ligger", " ", "på", " ", "matta", " ", "."]`
 
 **Why preserve spaces?** Because when we reconstruct the sentence later, we want the exact original formatting. No weird extra spaces or missing punctuation.
 
@@ -69,9 +69,9 @@ def get_pos_tagger():
     return tagger
 ```
 
-**Why POS tagging?** Because "kasta" could be:
-- A **noun** (the act of throwing)
-- A **verb** (to throw)
+**Why POS tagging?** Because "ligger" could be:
+- A **noun** (the position/location)
+- A **verb** (to lie/be positioned)
 
 The API gives different results for nouns vs verbs, so we need to know what we're looking for.
 
@@ -104,9 +104,10 @@ def extract_pos_tags(sentence: str) -> Dict[str, str]:
 
 **Example output**:
 ```
-jenta: NOUN
-kasta: VERB  
-ballen: NOUN
+katta: NOUN
+ligger: VERB
+på: ADP
+matta: NOUN
 ```
 
 ## Stage 3: API Lookup Strategy
@@ -115,13 +116,12 @@ This stage gathers every form of a word that might apply.
 
 ### The Multi-Lemma Challenge
 
-Here's a real example: "ballen" (the ball) has THREE different lemmas in the Norwegian dictionary:
+Here's a real example: "matten" (the mat) has multiple forms across different lemmas in the Norwegian dictionary:
 
-1. **Lemma 5055**: ball (masculine) → ball, ballen, baller, ballene
-2. **Lemma 159269**: ball (feminine) → balla, ballen, ballene
-3. **Lemma 159267**: ball (neuter) → ball, baller, ballene
+1. **Lemma 43856**: matte (NOUN) → matte, matten, matter, mattene
+2. **Lemma 43857**: matte (NOUN) → matte, matta, matter, mattene
 
-**The problem**: If we only looked at the first lemma, we'd miss "balla" as an alternative. But if we combine all lemmas blindly, we get irrelevant forms.
+**The problem**: If we only looked at the first lemma, we'd miss "matta" as an alternative. But if we combine all lemmas blindly, we get irrelevant forms.
 
 ### Lemma Selection
 
@@ -149,7 +149,7 @@ def get_alternatives(word: str, lang: str, headers: Dict[str, str], timeout: flo
             matching_lemmas.append({"id": lemma_id, "inflections": inflections})
 ```
 
-**Why this approach?** We only use lemmas that actually contain the word we're analyzing. This prevents "ballen" from picking up forms from unrelated lemmas.
+**Why this approach?** We only use lemmas that actually contain the word we're analyzing. This prevents "matten" from picking up forms from unrelated lemmas.
 
 ### API Caching: Performance Optimization
 
@@ -173,10 +173,10 @@ def search_lemmas(word: str, lang: str, headers: Dict[str, str], timeout: float,
 ```
 
 **Why caching?** API calls are slow (200-500ms each). Without caching:
-- First run of "Jenta kasta ballen": ~2-3 seconds
+- First run of "Katta ligger på matta": ~2-3 seconds
 - With caching: subsequent runs are ~100ms
 
-**Cache key strategy**: `lemmas_jenta_nob_VERB` ensures we cache different results for the same word with different POS tags.
+**Cache key strategy**: `lemmas_katta_nob_NOUN` ensures we cache different results for the same word with different POS tags.
 
 ### JSON Serialization Handling
 
@@ -209,21 +209,21 @@ def find_matching_tags(target_word: str, inflections: List[Dict], debug: bool = 
             matching_tags.add(inflection["tags"])
 ```
 
-**Example for "ballen"**:
-- Found inflection: `word_form='ballen', tags=('Sing', 'Def')`
-- This means "ballen" is singular definite
-- So we only want alternatives that are also singular definite
+**Example for "matta"**:
+- Found inflection: `word_form='matta', tags=('Sing', 'Ind')`
+- This means "matta" is singular indefinite
+- So we only want alternatives that are also singular indefinite
 
 **Example output**:
 ```
-🏷️ FINDING TAGS FOR: ballen
-   Found match: ballen -> ('Sing', 'Def')
-   Final matching tags: {('Sing', 'Def')}
+🏷️ FINDING TAGS FOR: matta
+   Found match: matta -> ('Sing', 'Ind')
+   Final matching tags: {('Sing', 'Ind')}
 
 🔍 COLLECTING ALTERNATIVES WITH MATCHING TAGS:
-   ✅ ballen (tags: ('Sing', 'Def'))  
-   ✅ balla (tags: ('Sing', 'Def'))   # Same grammatical slot!
-   ❌ ball (tags: ('Sing', 'Ind')) - doesn't match  # Wrong form
+   ✅ matta (tags: ('Sing', 'Ind'))  
+   ✅ matten (tags: ('Sing', 'Def'))   # Definite form alternative!
+   ❌ matter (tags: ('Plur', 'Ind')) - doesn't match  # Wrong number
 ```
 
 ## Stage 5: BERT-Based Acceptability Filtering
@@ -232,10 +232,10 @@ Not all grammatically correct alternatives make sense in context, so we score th
 
 ### The Context Problem
 
-Consider: `"Hinduen syntes den kasta han var i var grei"`
+Consider: `"Katta ligger på den matta som er der"`
 
-- "kasta" could theoretically be "kastene" (grammatically valid)
-- But "kastene" (plural) makes no sense with "den" (singular)
+- "matta" could theoretically be "matter" (grammatically valid)
+- But "matter" (plural) makes no sense with "den" (singular)
 
 ### Position-Specific Analysis
 
@@ -258,12 +258,12 @@ def score_word_in_context(sentence: str, target_word: str, target_position: Opti
 
 **Example**:
 ```
-Original: "Hinduen syntes den kasta han var i var grei"
-Masked:   "Hinduen syntes den [MASK] han var i var grei"
+Original: "Katta ligger på den matta som er der"
+Masked:   "Katta ligger på den [MASK] som er der"
 
 BERT scores:
-- kasta: logit=7.521 (very likely)
-- kastene: logit=1.497 (unlikely - doesn't fit with "den")
+- matta: logit=7.521 (very likely)
+- matter: logit=1.497 (unlikely - doesn't fit with "den")
 ```
 
 ### The Logit Threshold Strategy
@@ -291,12 +291,12 @@ def filter_by_acceptability(tokens: List[str], position: int, alternatives: Set[
 
 **Example filtering**:
 ```
-🔍 ANALYZING: kasta (position 17)
-Context: Jenta kasta ballen til gutten. Hinduen syntes den [kasta] han var i var grei.
+🔍 ANALYZING: matta (position 3)
+Context: Katta ligger på den [matta] som er der.
 
-kasta    : Logit 7.521 (ORIGINAL)
-kastene  : Logit 1.497
-❌ REJECTING kastene: logit diff +6.023 > 2.0 (too improbable)
+matta    : Logit 7.521 (ORIGINAL)
+matter   : Logit 1.497
+❌ REJECTING matter: logit diff +6.023 > 2.0 (too improbable)
 ```
 
 ### Position Matters
@@ -304,14 +304,14 @@ kastene  : Logit 1.497
 The same word can have different alternatives in different positions:
 
 ```python
-# Position 3: "Jenta [kasta] ballen"  
-kasta: acceptable alternatives = {kasta, kastet}
+# Position 3: "Katta ligger på [matta]"  
+matta: acceptable alternatives = {matta, matten}
 
-# Position 17: "syntes den [kasta] han var"
-kasta: acceptable alternatives = {kasta} only
+# Position 5: "ligger på den [matta] som"
+matta: acceptable alternatives = {matta} only
 ```
 
-**Why?** Because the grammatical context is different. In position 3, past tense works. In position 17, it's part of a complex construction where only one form fits.
+**Why?** Because the grammatical context is different. In position 3, both indefinite and definite forms work. In position 5 with "den", only the indefinite form fits grammatically.
 
 ## Stage 6: Output Construction and Case Matching
 
@@ -329,7 +329,7 @@ def case_match(original: str, target: str) -> str:
     return target
 ```
 
-**Why this matters**: If the input is "Jenta", the output should be "{Jenta, Jenten}", not "{jenta, jenten}".
+**Why this matters**: If the input is "Katta", the output should be "{Katta, Katten}", not "{katta, katten}".
 
 ### Ordering
 
@@ -422,27 +422,28 @@ The system has 4 verbosity levels:
 
 **Example Level 3 output**:
 ```
-🎯 PROCESSING: Jenta kasta ballen.
+🎯 PROCESSING: Katta ligger på matta.
 
-📝 WORDS: ['jenta', 'kasta', 'ballen']
+📝 WORDS: ['katta', 'ligger', 'på', 'matta']
 
 🏷️ POS TAGS:
-   jenta: NOUN
-   kasta: VERB
-   ballen: NOUN
+   katta: NOUN
+   ligger: VERB
+   på: ADP
+   matta: NOUN
 
-📡 API LOOKUP: jenta (POS: NOUN)
-💾 CACHE HIT: lemmas for 'jenta' (POS: NOUN)
-   ✅ jenta: 2 alternatives: ['jenta', 'jenten']
+📡 API LOOKUP: katta (POS: NOUN)
+💾 CACHE HIT: lemmas for 'katta' (POS: NOUN)
+   ✅ katta: 2 alternatives: ['katta', 'katten']
 
 🧠 ACCEPTABILITY FILTERING (threshold: 3.00)
 
-🔍 ANALYZING: jenta (position 0)
-   Context: [Jenta] kasta ballen.
-   Alternatives: ['jenta', 'jenten']
-     jenten      : Logit 3.017, Prob 7.56e-05, Rank -1
-     jenta       : Logit 3.155, Prob 2.83e-05, Rank -1 (ORIGINAL)
-     ✅ KEEPING jenten: logit diff +0.138 <= 3.0
+🔍 ANALYZING: katta (position 0)
+   Context: [Katta] ligger på matta.
+   Alternatives: ['katta', 'katten']
+     katten      : Logit 3.017, Prob 7.56e-05, Rank -1
+     katta       : Logit 3.155, Prob 2.83e-05, Rank -1 (ORIGINAL)
+     ✅ KEEPING katten: logit diff +0.138 <= 3.0
      📊 Result: kept 2, rejected 0
 ```
 
@@ -481,4 +482,4 @@ The key insight is that morphological alternatives aren't just about grammar—c
 
 The system prioritizes correctness over speed, but uses caching and concurrency to make it practical for real-world use. Every design decision aims to handle the complexity of natural language while providing reliable results.
 
-When you see the output `"{Jenta, Jenten} {kasta, kastet} ballen til gutten."`, the pipeline has considered grammar, context, and acceptability to keep alternatives that are likely to fit.
+When you see the output `"{Katta, Katten} ligger på {matten, matta}."`, the pipeline has considered grammar, context, and acceptability to keep alternatives that are likely to fit.

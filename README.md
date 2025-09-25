@@ -41,7 +41,7 @@ python altmorph.py --sentence "Katta ligger på matta." --lang nob
 ```
 **Output:**
 ```
-"{Katta, Katten} ligger på {matten, matta}."
+"{Katta, Katten} ligger på {matta, matten}."
 ```
 
 ### With API Key

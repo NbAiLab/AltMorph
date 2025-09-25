@@ -124,6 +124,6 @@ test_output/
 
 # Temporary development files
 scratch.py
-test.py
+:qtest.py
 debug.py
 playground.py
