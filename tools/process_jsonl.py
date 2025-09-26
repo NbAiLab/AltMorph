@@ -26,6 +26,7 @@ import json
 import logging
 import os
 import sys
+import time
 from pathlib import Path
 from typing import Dict, Any
 
@@ -50,6 +51,18 @@ except ImportError as e:
     sys.exit(1)
 
 
+def count_output_lines(output_file: str) -> int:
+    """Count existing lines in output file for resume functionality."""
+    if not Path(output_file).exists():
+        return 0
+    
+    try:
+        with open(output_file, 'r', encoding='utf-8') as f:
+            return sum(1 for line in f if line.strip())
+    except Exception:
+        return 0
+
+
 def process_jsonl_file(input_file: str, output_file: str, lang: str, api_key: str,
                       timeout: float, max_workers: int, verbosity: int, 
                       logit_threshold: float, include_imperatives: bool = False,
@@ -58,6 +71,7 @@ def process_jsonl_file(input_file: str, output_file: str, lang: str, api_key: st
                       lemma_threshold: int = 1, include_number_ambiguous: bool = False) -> None:
     """
     Process JSONL file by adding morphological alternatives to each text field.
+    Supports automatic resume by skipping already processed lines.
     
     Args:
         input_file: Path to input JSONL file
@@ -72,6 +86,7 @@ def process_jsonl_file(input_file: str, output_file: str, lang: str, api_key: st
         include_determinatives: Whether to include determiner alternatives
         include_gender_adj: Whether to include gender-dependent adjective alternatives
         lemma_threshold: Maximum lemmas before filtering to avoid semantic confusion
+        include_number_ambiguous: Whether to include alternatives for number-ambiguous nouns
     """
     if not Path(input_file).exists():
         raise FileNotFoundError(f"Input file not found: {input_file}")
@@ -79,15 +94,28 @@ def process_jsonl_file(input_file: str, output_file: str, lang: str, api_key: st
     if not api_key.strip():
         raise ValueError("API key required. Set ORDBANK_API_KEY environment variable or use --api_key")
     
+    # Check for resume
+    existing_lines = count_output_lines(output_file)
+    file_mode = 'a' if existing_lines > 0 else 'w'
+    
+    if existing_lines > 0 and verbosity >= 1:
+        print(f"📋 RESUMING: Found {existing_lines} existing lines, starting from line {existing_lines + 1}")
+    
     processed_count = 0
     error_count = 0
+    total_processed = existing_lines
+    start_time = time.time()
     
     with open(input_file, 'r', encoding='utf-8') as infile, \
-         open(output_file, 'w', encoding='utf-8') as outfile:
+         open(output_file, file_mode, encoding='utf-8') as outfile:
         
         for line_num, line in enumerate(infile, 1):
             line = line.strip()
             if not line:
+                continue
+            
+            # Skip already processed lines for resume
+            if line_num <= existing_lines:
                 continue
                 
             try:
@@ -131,6 +159,16 @@ def process_jsonl_file(input_file: str, output_file: str, lang: str, api_key: st
                 # Write enhanced JSON line
                 outfile.write(json.dumps(data, ensure_ascii=False) + '\n')
                 processed_count += 1
+                total_processed += 1
+                
+                # Progress reporting and flushing every 100 lines
+                if processed_count % 100 == 0:
+                    outfile.flush()  # Ensure data is written to disk
+                    elapsed = time.time() - start_time
+                    lines_per_sec = processed_count / elapsed if elapsed > 0 else 0
+                    if verbosity >= 1:
+                        print(f"✅ Progress: {total_processed} lines processed ({processed_count} new) | "
+                              f"{lines_per_sec:.1f} lines/sec | {error_count} errors")
                 
                 if verbosity >= 3:
                     print(f"Line {line_num} result: {alt_text}")
@@ -146,9 +184,23 @@ def process_jsonl_file(input_file: str, output_file: str, lang: str, api_key: st
                 if verbosity >= 1:
                     print(f"Error processing line {line_num}: {e}")
                 continue
+        
+        # Final flush (inside the with block)
+        try:
+            outfile.flush()
+        except Exception:
+            pass  # File might already be closed
     
+    # Final summary
+    elapsed = time.time() - start_time
     if verbosity >= 1:
-        print(f"Processing complete: {processed_count} lines processed, {error_count} errors")
+        print(f"\n🎯 Processing complete!")
+        print(f"   📊 New lines processed: {processed_count}")
+        print(f"   📁 Total lines in output: {total_processed}")
+        print(f"   ⚠️  Errors encountered: {error_count}")
+        print(f"   ⏱️  Processing time: {elapsed:.1f}s")
+        if processed_count > 0:
+            print(f"   🚀 Average speed: {processed_count / elapsed:.1f} lines/sec")
 
 
 def main() -> None:
@@ -217,7 +269,8 @@ def main() -> None:
         )
         
     except KeyboardInterrupt:
-        print("\nProcessing interrupted by user")
+        print("\n⚠️ Processing interrupted by user")
+        print("💾 Progress has been saved. You can resume by running the same command.")
         sys.exit(1)
     except Exception as e:
         print(f"Error: {e}")
