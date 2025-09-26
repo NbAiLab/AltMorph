@@ -463,7 +463,7 @@ def collect_inflections(lemma_ids: List[int], lang: str, headers: Dict[str, str]
 
 def find_matching_tags(target_word: str, inflections: List[Dict], pos_tag: Optional[str] = None,
                       debug: bool = False, include_imperatives: bool = False, 
-                      include_gender_adj: bool = False) -> Set[Tuple[str, ...]]:
+                      include_gender_adj: bool = False, include_number_ambiguous: bool = False) -> Set[Tuple[str, ...]]:
     """Find grammatical tags that match the target word."""
     target_lower = target_word.casefold()
     matching_tags = set()
@@ -497,6 +497,15 @@ def find_matching_tags(target_word: str, inflections: List[Dict], pos_tag: Optio
                 logger.debug("   ADJ has gender-dependent forms - skipping alternatives (use --include_gender_adj for agreement forms)")
             return set()
     
+    # Filter out number-ambiguous nouns unless explicitly requested
+    if pos_tag == 'NOUN' and not include_number_ambiguous:
+        has_singular = any('Sing' in str(tags) for tags in matching_tags)
+        has_plural = any('Plur' in str(tags) for tags in matching_tags)
+        if has_singular and has_plural:
+            if debug:
+                logger.debug("   NOUN has both singular and plural forms - skipping alternatives (use --include_number_ambiguous to override)")
+            return set()
+    
     # Prioritize simple verb tags over complex ones
     if len(matching_tags) > 1:
         simple_verb_tags = {'Past', 'Pres', 'Inf', 'Imp'}
@@ -516,7 +525,7 @@ def find_matching_tags(target_word: str, inflections: List[Dict], pos_tag: Optio
 def get_alternatives(word: str, lang: str, headers: Dict[str, str], timeout: float,
                     pos_filter: Optional[str] = None, debug: bool = False, 
                     include_imperatives: bool = False, include_gender_adj: bool = False,
-                    lemma_threshold: int = 1) -> Optional[Set[str]]:
+                    lemma_threshold: int = 1, include_number_ambiguous: bool = False) -> Optional[Set[str]]:
     """Get alternative forms for a word."""
     # Search for lemmas
     lemmas = search_lemmas(word, lang, headers, timeout, pos_filter, debug)
@@ -581,7 +590,7 @@ def get_alternatives(word: str, lang: str, headers: Dict[str, str], timeout: flo
     
     # Find matching grammatical tags
     matching_tags = find_matching_tags(word, all_inflections, pos_filter, debug, 
-                                     include_imperatives, include_gender_adj)
+                                     include_imperatives, include_gender_adj, include_number_ambiguous)
     if not matching_tags:
         return None
 
@@ -668,7 +677,8 @@ def get_unique_words(tokens: List[str]) -> List[str]:
 def process_sentence(sentence: str, lang: str, api_key: str, timeout: float,
                     max_workers: int, verbosity: int = 0, logit_threshold: float = 2.0, 
                     include_imperatives: bool = False, include_determinatives: bool = False,
-                    include_gender_adj: bool = False, lemma_threshold: int = 1) -> str:
+                    include_gender_adj: bool = False, lemma_threshold: int = 1, 
+                    include_number_ambiguous: bool = False) -> str:
     """Process sentence and return alternatives."""
     
     headers = {"x-api-key": api_key.strip()}
@@ -717,7 +727,8 @@ def process_sentence(sentence: str, lang: str, api_key: str, timeout: float,
                 logger.debug("\n📡 API LOOKUP: %s (POS: %s)", word, pos_tag or 'None')
             
             future = executor.submit(get_alternatives, word, lang, headers, timeout, pos_tag, 
-                                   verbosity >= 2, include_imperatives, include_gender_adj, lemma_threshold)
+                                   verbosity >= 2, include_imperatives, include_gender_adj, 
+                                   lemma_threshold, include_number_ambiguous)
             futures[future] = word
         
         for future in cf.as_completed(futures):
@@ -840,6 +851,8 @@ def parse_args() -> argparse.Namespace:
                        help="Include determiner alternatives like en/ei (default: False)")
     parser.add_argument("--include_gender_adj", action="store_true",
                        help="Include gender-dependent adjective alternatives (default: False)")
+    parser.add_argument("--include_number_ambiguous", action="store_true",
+                       help="Include alternatives for number-ambiguous nouns (default: False)")
     parser.add_argument("--no-cache", action="store_true",
                        help="Disable caching (always fetch from API)")
     parser.add_argument("--delete-cache", action="store_true",
@@ -905,7 +918,8 @@ def main():
             include_imperatives=args.include_imperatives,
             include_determinatives=args.include_determinatives,
             include_gender_adj=args.include_gender_adj,
-            lemma_threshold=args.lemma_threshold
+            lemma_threshold=args.lemma_threshold,
+            include_number_ambiguous=args.include_number_ambiguous
         )
         print(result)
         

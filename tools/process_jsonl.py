@@ -55,7 +55,7 @@ def process_jsonl_file(input_file: str, output_file: str, lang: str, api_key: st
                       logit_threshold: float, include_imperatives: bool = False,
                       include_determinatives: bool = False, 
                       include_gender_adj: bool = False, 
-                      lemma_threshold: int = 1) -> None:
+                      lemma_threshold: int = 1, include_number_ambiguous: bool = False) -> None:
     """
     Process JSONL file by adding morphological alternatives to each text field.
     
@@ -121,7 +121,8 @@ def process_jsonl_file(input_file: str, output_file: str, lang: str, api_key: st
                     include_imperatives=include_imperatives,
                     include_determinatives=include_determinatives,
                     include_gender_adj=include_gender_adj,
-                    lemma_threshold=lemma_threshold
+                    lemma_threshold=lemma_threshold,
+                    include_number_ambiguous=include_number_ambiguous
                 )
                 
                 # Add "alt" field to data
@@ -180,6 +181,8 @@ def main() -> None:
                        help="Include determiner alternatives like en/ei (default: False)")
     parser.add_argument("--include_gender_adj", action="store_true",
                        help="Include gender-dependent adjective alternatives (default: False)")
+    parser.add_argument("--include_number_ambiguous", action="store_true",
+                       help="Include alternatives for number-ambiguous nouns (default: False)")
     
     args = parser.parse_args()
     
@@ -209,7 +212,8 @@ def main() -> None:
             include_imperatives=args.include_imperatives,
             include_determinatives=args.include_determinatives,
             include_gender_adj=args.include_gender_adj,
-            lemma_threshold=args.lemma_threshold
+            lemma_threshold=args.lemma_threshold,
+            include_number_ambiguous=args.include_number_ambiguous
         )
         
     except KeyboardInterrupt:
