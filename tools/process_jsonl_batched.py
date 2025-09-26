@@ -261,8 +261,8 @@ def main() -> None:
                        help="Ordbank API key (or set ORDBANK_API_KEY)")
     parser.add_argument("--timeout", type=float, default=6.0,
                        help="HTTP timeout per request (default: 6.0)")
-    parser.add_argument("--max_workers", type=int, default=12,
-                       help="Parallel API requests (default: 12)")
+    parser.add_argument("--max_workers", type=int, default=8,
+                       help="Parallel API requests (default: 8)")
     parser.add_argument("--verbosity", type=int, default=1, choices=[0, 1, 2, 3],
                        help="Verbosity level: 0=quiet, 1=normal, 2=verbose, 3=very verbose (default: 1)")
     parser.add_argument("--logit_threshold", type=float, default=3.0,
@@ -277,7 +277,7 @@ def main() -> None:
                        help="Include gender-dependent adjective alternatives (default: False)")
     parser.add_argument("--include_number_ambiguous", action="store_true",
                        help="Include alternatives for number-ambiguous nouns (default: False)")
-    parser.add_argument("--batch_size", type=int, default=100,
+    parser.add_argument("--batch_size", type=int, default=50,
                        help="Batch size for processing sentences (default: 50)")
     
     args = parser.parse_args()
