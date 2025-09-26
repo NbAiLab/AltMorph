@@ -646,7 +646,7 @@ def get_unique_words(tokens: List[str]) -> List[str]:
 
 def process_sentence(sentence: str, lang: str, api_key: str, timeout: float,
                     max_workers: int, verbosity: int = 0, logit_threshold: float = 2.0, 
-                    include_imperatives: bool = False, include_determinatives: bool = False) -> str:
+                    include_imperatives: bool = False) -> str:
     """Process sentence and return alternatives."""
     
     headers = {"x-api-key": api_key.strip()}
@@ -668,21 +668,6 @@ def process_sentence(sentence: str, lang: str, api_key: str, timeout: float,
         logger.debug("\n🏷️ POS TAGS:")
         for word, pos in pos_tags.items():
             logger.debug("   %s: %s", word, pos)
-    
-    # Filter out determiners unless explicitly requested
-    if not include_determinatives:
-        filtered_words = []
-        for word in unique_words:
-            pos_tag = pos_tags.get(word)
-            if pos_tag == 'DET':
-                if verbosity >= 2:
-                    logger.debug("   🚫 SKIPPING %s: POS=DET (use --include_determinatives to override)", word)
-            else:
-                filtered_words.append(word)
-        unique_words = filtered_words
-        
-        if verbosity >= 2 and len(filtered_words) < len(get_unique_words(tokens)):
-            logger.debug("   📋 FILTERED WORDS: %s", unique_words)
     
     # Fetch alternatives from API
     cache = {}
@@ -812,8 +797,6 @@ def parse_args() -> argparse.Namespace:
                        help="Acceptability threshold (default: 3.0)")
     parser.add_argument("--include_imperatives", action="store_true",
                        help="Include imperative alternatives (default: False)")
-    parser.add_argument("--include_determinatives", action="store_true",
-                       help="Include determiner alternatives like en/ei (default: False)")
     parser.add_argument("--no-cache", action="store_true",
                        help="Disable caching (always fetch from API)")
     parser.add_argument("--delete-cache", action="store_true",
@@ -876,8 +859,7 @@ def main():
             max_workers=max(1, args.max_workers),
             verbosity=args.verbosity,
             logit_threshold=args.logit_threshold,
-            include_imperatives=args.include_imperatives,
-            include_determinatives=args.include_determinatives
+            include_imperatives=args.include_imperatives
         )
         print(result)
         

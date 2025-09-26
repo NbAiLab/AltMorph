@@ -31,29 +31,16 @@ from typing import Dict, Any
 
 # Import altmorph functions from parent directory
 try:
-    parent_dir = Path(__file__).parent.parent
-    sys.path.insert(0, str(parent_dir))
-    
-    # Debug info
-    altmorph_path = parent_dir / "altmorph.py"
-    if not altmorph_path.exists():
-        print(f"Error: altmorph.py not found at {altmorph_path}")
-        sys.exit(1)
-    
+    sys.path.insert(0, str(Path(__file__).parent.parent))
     from altmorph import process_sentence
-except ImportError as e:
-    print(f"Error importing altmorph: {e}")
-    print(f"Python path: {sys.path[:3]}...")  # Show first few paths
-    parent_dir = Path(__file__).parent.parent
-    print(f"Parent directory: {parent_dir}")
-    print(f"Files in parent: {list(parent_dir.glob('*.py'))}")
+except ImportError:
+    print("Error: Cannot import altmorph. Ensure altmorph.py is in the parent directory.")
     sys.exit(1)
 
 
 def process_jsonl_file(input_file: str, output_file: str, lang: str, api_key: str,
                       timeout: float, max_workers: int, verbosity: int, 
-                      logit_threshold: float, include_imperatives: bool = False,
-                      include_determinatives: bool = False) -> None:
+                      logit_threshold: float, include_imperatives: bool = False) -> None:
     """
     Process JSONL file by adding morphological alternatives to each text field.
     
@@ -67,7 +54,6 @@ def process_jsonl_file(input_file: str, output_file: str, lang: str, api_key: st
         verbosity: Verbosity level (0-3)
         logit_threshold: BERT acceptability threshold
         include_imperatives: Whether to include imperative alternatives
-        include_determinatives: Whether to include determiner alternatives
     """
     if not Path(input_file).exists():
         raise FileNotFoundError(f"Input file not found: {input_file}")
@@ -114,8 +100,7 @@ def process_jsonl_file(input_file: str, output_file: str, lang: str, api_key: st
                     max_workers=max_workers,
                     verbosity=max(0, verbosity - 2),  # Reduce verbosity for process_sentence
                     logit_threshold=logit_threshold,
-                    include_imperatives=include_imperatives,
-                    include_determinatives=include_determinatives
+                    include_imperatives=include_imperatives
                 )
                 
                 # Add "alt" field to data
@@ -168,8 +153,6 @@ def main() -> None:
                        help="BERT acceptability threshold (default: 3.0)")
     parser.add_argument("--include_imperatives", action="store_true",
                        help="Include imperative alternatives (default: False)")
-    parser.add_argument("--include_determinatives", action="store_true",
-                       help="Include determiner alternatives like en/ei (default: False)")
     
     args = parser.parse_args()
     
@@ -196,8 +179,7 @@ def main() -> None:
             max_workers=args.max_workers,
             verbosity=args.verbosity,
             logit_threshold=args.logit_threshold,
-            include_imperatives=args.include_imperatives,
-            include_determinatives=args.include_determinatives
+            include_imperatives=args.include_imperatives
         )
         
     except KeyboardInterrupt:
